@@ -45,9 +45,9 @@
   <title>Тренировка славянской защиты за черных</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
-  <script src="https://unpkg.com/chessboardjs@0.0.1/dist/chessboard-0.3.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
   <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/chessboardjs@0.0.1/dist/chessboard-0.3.0.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
   <style>
     body { background-color: #f3f4f6; }
     #board { width: 400px; margin: 0 auto; }
@@ -70,58 +70,78 @@
   </div>
 
   <script>
-    const chess = new Chess();
-    let board;
-    const positions = [
-      { fen: 'rnbqkb1r/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1', move: 'd4', response: 'd5' },
-      { fen: 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1', move: 'c4', response: 'c6' },
-      { fen: 'rnbqkb1r/pp1p1ppp/5n2/4p3/4P3/5N2/PP1P1PPP/RNBQKB1R w KQkq - 0 2', move: 'Nf3', response: 'Nf6' }
-    ];
-    let currentPosition = 0;
-
-    function loadPosition() {
-      chess.load(positions[currentPosition].fen);
-      board.position(chess.fen());
-      $('#status').text(`Ход белых: ${positions[currentPosition].move}`);
-      $('#hint').text('');
-    }
-
-    function onDrop(source, target) {
-      const move = chess.move({ from: source, to: target, promotion: 'q' });
-      if (move === null) return 'snapback';
-      
-      if (move.san === positions[currentPosition].move) {
-        chess.move(positions[currentPosition].response);
-        board.position(chess.fen());
-        $('#status').text('Правильный ход! Черные ответили. Следующая позиция через 2 секунды.');
-        setTimeout(() => {
-          currentPosition = (currentPosition + 1) % positions.length;
-          loadPosition();
-        }, 2000);
-      } else {
-        $('#status').text('Неправильный ход. Попробуйте снова.');
-        chess.undo();
-        board.position(chess.fen());
+    $(document).ready(function() {
+      // Проверка наличия ChessBoard
+      if (typeof Chessboard === 'undefined') {
+        console.error('Chessboard не определен. Проверьте загрузку chessboard-js.');
+        $('#status').text('Ошибка: Не удалось загрузить шахматную доску. Проверьте подключение к интернету.');
+        return;
       }
-    }
 
-    $('#startBtn').on('click', () => {
-      currentPosition = 0;
-      loadPosition();
+      const chess = new Chess();
+      let board;
+      const positions = [
+        { fen: 'rnbqkb1r/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1', move: 'd4', response: 'd5' },
+        { fen: 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1', move: 'c4', response: 'c6' },
+        { fen: 'rnbqkb1r/pp1p1ppp/5n2/4p3/4P3/5N2/PP1P1PPP/RNBQKB1R w KQkq - 0 2', move: 'Nf3', response: 'Nf6' }
+      ];
+      let currentPosition = 0;
+
+      function loadPosition() {
+        if (!board) {
+          console.error('Доска не инициализирована');
+          $('#status').text('Ошибка: Доска не инициализирована.');
+          return;
+        }
+        chess.load(positions[currentPosition].fen);
+        board.position(chess.fen());
+        $('#status').text(`Ход белых: ${positions[currentPosition].move}`);
+        $('#hint').text('');
+      }
+
+      function onDrop(source, target) {
+        const move = chess.move({ from: source, to: target, promotion: 'q' });
+        if (move === null) return 'snapback';
+        
+        if (move.san === positions[currentPosition].move) {
+          chess.move(positions[currentPosition].response);
+          board.position(chess.fen());
+          $('#status').text('Правильный ход! Черные ответили. Следующая позиция через 2 секунды.');
+          setTimeout(() => {
+            currentPosition = (currentPosition + 1) % positions.length;
+            loadPosition();
+          }, 2000);
+        } else {
+          $('#status').text('Неправильный ход. Попробуйте снова.');
+          chess.undo();
+          board.position(chess.fen());
+        }
+      }
+
+      const cfg = {
+        draggable: true,
+        position: 'start',
+        onDrop: onDrop,
+        pieceTheme: 'https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{piece}.png'
+      };
+
+      try {
+        board = Chessboard('board', cfg);
+        loadPosition();
+      } catch (e) {
+        console.error('Ошибка инициализации доски:', e);
+        $('#status').text('Ошибка загрузки шахматной доски. Проверьте подключение к интернету.');
+      }
+
+      $('#startBtn').on('click', () => {
+        currentPosition = 0;
+        loadPosition();
+      });
+
+      $('#hintBtn').on('click', () => {
+        $('#hint').text(`Подсказка: Сделайте ход ${positions[currentPosition].move} за белых.`);
+      });
     });
-
-    $('#hintBtn').on('click', () => {
-      $('#hint').text(`Подсказка: Сделайте ход ${positions[currentPosition].move} за белых.`);
-    });
-
-    const cfg = {
-      draggable: true,
-      position: 'start',
-      onDrop: onDrop,
-      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-    };
-    board = ChessBoard('board', cfg);
-    loadPosition();
   </script>
 </body>
 </html>
