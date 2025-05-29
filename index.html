@@ -1,0 +1,127 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тренировка славянской защиты за черных</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
+  <script src="https://unpkg.com/chessboardjs@0.0.1/dist/chessboard-0.3.0.min.js"></script>
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/chessboardjs@0.0.1/dist/chessboard-0.3.0.min.css">
+  <style>
+    body { background-color: #f3f4f6; }
+    #board { width: 400px; margin: 0 auto; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .btn { transition: background-color 0.3s; }
+    .btn:hover { background-color: #4b5563; }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto text-center">
+    <h1 class="text-3xl font-bold mb-4">Тренировка славянской защиты за черных</h1>
+    <p class="text-lg mb-6">Славянская защита — это надежный шахматный дебют, начинающийся ходами 1. d4 d5 2. c4 c6. Цель черных — создать прочную пешечную структуру и подготовить контршанс на ферзевом фланге. Этот сайт поможет вам отработать ключевые позиции за черных.</p>
+    <div id="board" class="mb-6"></div>
+    <div class="mb-4">
+      <button id="startBtn" class="btn bg-blue-500 text-white px-4 py-2 rounded">Начать новую позицию</button>
+      <button id="hintBtn" class="btn bg-gray-500 text-white px-4 py-2 rounded ml-2">Подсказка</button>
+    </div>
+    <p id="status" class="text-lg font-semibold"></p>
+    <p id="hint" class="text-md text-gray-600"></p>
+  </div>
+
+  <script>
+    const chess = new Chess();
+    let board;
+    const positions = [
+      { fen: 'rnbqkb1r/pppppppp/5n2/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 1', move: 'd4', response: 'd5' },
+      { fen: 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1', move: 'c4', response: 'c6' },
+      { fen: 'rnbqkb1r/pp1p1ppp/5n2/4p3/4P3/5N2/PP1P1PPP/RNBQKB1R w KQkq - 0 2', move: 'Nf3', response: 'Nf6' }
+    ];
+    let currentPosition = 0;
+
+    function loadPosition() {
+      chess.load(positions[currentPosition].fen);
+      board.position(chess.fen());
+      $('#status').text(`Ход белых: ${positions[currentPosition].move}`);
+      $('#hint').text('');
+    }
+
+    function onDrop(source, target) {
+      const move = chess.move({ from: source, to: target, promotion: 'q' });
+      if (move === null) return 'snapback';
+      
+      if (move.san === positions[currentPosition].move) {
+        chess.move(positions[currentPosition].response);
+        board.position(chess.fen());
+        $('#status').text('Правильный ход! Черные ответили. Следующая позиция через 2 секунды.');
+        setTimeout(() => {
+          currentPosition = (currentPosition + 1) % positions.length;
+          loadPosition();
+        }, 2000);
+      } else {
+        $('#status').text('Неправильный ход. Попробуйте снова.');
+        chess.undo();
+        board.position(chess.fen());
+      }
+    }
+
+    $('#startBtn').on('click', () => {
+      currentPosition = 0;
+      loadPosition();
+    });
+
+    $('#hintBtn').on('click', () => {
+      $('#hint').text(`Подсказка: Сделайте ход ${positions[currentPosition].move} за белых.`);
+    });
+
+    const cfg = {
+      draggable: true,
+      position: 'start',
+      onDrop: onDrop,
+      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+    };
+    board = ChessBoard('board', cfg);
+    loadPosition();
+  </script>
+</body>
+</html>
