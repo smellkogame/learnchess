@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>РАДИАЦИЯ — 2.5D Интерактивная Игра</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Montserrat:wght@700;900&family=Rubik+Glitch&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -45,7 +45,7 @@
         .glitch-title {
             font-family: 'Montserrat', sans-serif;
             font-weight: 900;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.14em;
             text-shadow: 
                 -3px 0 #ff2a2a, 
                 3px 0 #00e5ff,
@@ -84,6 +84,9 @@
 </head>
 <body class="relative w-full h-full">
 
+    <!-- ФОНОВАЯ МУЗЫКА (Автоматически берет файл Music.mp3 из той же папки, где лежит index.html) -->
+    <audio id="bgMusic" src="Music.mp3" loop preload="auto"></audio>
+
     <!-- ГЛАВНЫЙ 2.5D КАНВАС -->
     <canvas id="gameCanvas"></canvas>
 
@@ -92,16 +95,13 @@
 
     <!-- РАМКА ВИДОИСКАТЕЛЯ КАМЕРЫ (активна при включенной камере [C]) -->
     <div id="camcorderOverlay" class="fixed inset-0 z-15 pointer-events-none hidden cam-vignette transition-opacity duration-300">
-        <!-- Уголки видоискателя -->
         <div class="absolute top-20 left-6 w-12 h-12 border-t-2 border-l-2 border-white/70"></div>
         <div class="absolute top-20 right-6 w-12 h-12 border-t-2 border-r-2 border-white/70"></div>
         <div class="absolute bottom-24 left-6 w-12 h-12 border-b-2 border-l-2 border-white/70"></div>
         <div class="absolute bottom-24 right-6 w-12 h-12 border-b-2 border-r-2 border-white/70"></div>
-        <!-- Центральный прицел фокуса -->
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 border border-white/30 rounded-full flex items-center justify-center">
             <div class="w-1.5 h-1.5 bg-red-500/80 rounded-full"></div>
         </div>
-        <!-- Индикаторы DV-камеры -->
         <div class="absolute top-24 left-12 flex items-center gap-2.5 text-white font-bold tracking-widest text-sm drop-shadow">
             <span class="w-3.5 h-3.5 rounded-full bg-red-600 rec-dot inline-block"></span>
             <span>REC</span>
@@ -119,7 +119,7 @@
     <!-- РАДИАЦИОННАЯ ТРЕВОГА (Оверлей при аномалии) -->
     <div id="radOverlay" class="fixed inset-0 z-15 pointer-events-none hidden rad-vignette"></div>
 
-    <!-- ИГРОВОЙ ИНТЕРФЕЙС (HUD — Точь-в-точь как на концепт-арте) -->
+    <!-- ИГРОВОЙ ИНТЕРФЕЙС (HUD) -->
     <div id="gameHUD" class="fixed inset-0 z-20 pointer-events-none hidden">
         
         <!-- Верхний левый блок: Здоровье, Статус Камеры, Дозиметр -->
@@ -132,11 +132,11 @@
                     </svg>
                 </div>
                 <div class="flex-1 h-4 bg-slate-950 rounded overflow-hidden border border-slate-700">
-                    <div id="healthBar" class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" style="width: 92%;"></div>
+                    <div id="healthBar" class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" style="width: 100%;"></div>
                 </div>
             </div>
 
-            <!-- Кнопка Камера (Запись) + Фонарик + Дозиметр -->
+            <!-- Кнопка Камера (Запись) + Фонарик -->
             <div class="flex flex-wrap items-center gap-2">
                 <button id="btnCamera" onclick="toggleCamera()" class="flex items-center gap-2.5 bg-slate-900/90 hover:bg-slate-800 active:scale-95 text-white border-2 border-slate-600/80 rounded-lg px-3.5 py-2 shadow-lg transition cursor-pointer">
                     <span id="camBtnDot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
@@ -159,46 +159,72 @@
             </div>
         </div>
 
-        <!-- Верхний правый блок: Задача и управление актами / звуком -->
+        <!-- Верхний правый блок: Задача и управление актами / музыкой -->
         <div class="absolute top-4 right-4 flex flex-col items-end gap-2 pointer-events-auto max-w-xs sm:max-w-sm">
             <div class="bg-slate-900/90 border-2 border-slate-600/80 rounded-lg p-3.5 shadow-xl backdrop-blur-sm w-full">
-                <div class="flex items-center justify-between gap-4 mb-1">
+                <div class="flex items-center justify-between gap-3 mb-1">
                     <span class="text-amber-400 font-bold text-xs sm:text-sm uppercase tracking-wider">Задача:</span>
                     <div class="flex items-center gap-1.5">
-                        <label title="Загрузить свою фоновую музыку (MP3/WAV)" class="text-emerald-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-xs border border-emerald-600/60 cursor-pointer transition">
-                            🎵 Свой трек
+                        <label title="Выбрать другой MP3-файл вручную, если нужно" class="text-emerald-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-xs border border-emerald-600/60 cursor-pointer transition">
+                            🎵 Music.mp3
                             <input type="file" id="bgMusicInput" accept="audio/*" class="hidden" onchange="handleCustomMusicUpload(event)">
                         </label>
-                        <button onclick="toggleMute()" id="btnMute" title="Звук Вкл/Выкл" class="text-slate-300 hover:text-white bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-600">
-                            🔊 Звук
+                        <button onclick="toggleMute()" id="btnMute" title="Звук Вкл/Выкл" class="text-slate-300 hover:text-white bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-600 cursor-pointer">
+                            🔊
                         </button>
-                        <button onclick="toggleActMenu()" title="Выбор акта" class="text-slate-300 hover:bg-slate-800 bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-600">
-                            ☰ Акты
+                        <button onclick="toggleActMenu()" title="Выбор локации" class="text-slate-300 hover:bg-slate-800 bg-slate-800 px-2 py-0.5 rounded text-xs border border-slate-600 cursor-pointer">
+                            ☰
                         </button>
                     </div>
                 </div>
                 <p id="questText" class="text-white text-xs sm:text-sm font-semibold leading-snug">
-                    Исследовать аномалию у вагонов
+                    Снять парней у вагонов
                 </p>
             </div>
 
-            <!-- Выпадающее меню быстрого перехода по актам -->
+            <!-- Выпадающее меню быстрого перехода по локациям -->
             <div id="actMenu" class="hidden bg-slate-900/95 border border-slate-600 rounded-lg p-2.5 shadow-2xl w-64 text-xs flex flex-col gap-1.5">
                 <div class="text-slate-400 font-bold px-1 pb-1 border-b border-slate-700">ПЕРЕХОД К ЛОКАЦИИ:</div>
-                <button onclick="loadAct(1); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200">Локация 1: Пути и вагоны</button>
-                <button onclick="loadAct(2); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200">Локация 2: Снежный овраг и гул</button>
-                <button onclick="loadAct(3); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200">Локация 3: Бетонные кубы и яма</button>
-                <button onclick="loadAct(4); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200">Локация 4: Цех и спуск в люк</button>
-                <button onclick="loadAct(5); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200">Локация 5: Плиты на закате</button>
+                <button onclick="loadAct(1); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200 cursor-pointer">1. Пути и вагоны</button>
+                <button onclick="loadAct(2); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200 cursor-pointer">2. Снежный овраг и гул</button>
+                <button onclick="loadAct(3); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200 cursor-pointer">3. Бетонные кубы и яма</button>
+                <button onclick="loadAct(4); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200 cursor-pointer">4. Цех и спуск в люк</button>
+                <button onclick="loadAct(5); toggleActMenu();" class="text-left hover:bg-slate-800 px-2 py-1.5 rounded text-slate-200 cursor-pointer">5. Плиты на закате</button>
             </div>
 
             <!-- Подсказка управления мышью -->
             <div id="controlHint" class="bg-slate-950/80 border border-slate-700/70 rounded px-3 py-1.5 text-[11px] text-slate-300 shadow">
-                🖱️ <b>ЛКМ по снегу</b> — идти | <b>ЛКМ по объекту</b> — действие | <b>[C]</b> Камера
+                🖱️ <b>ЛКМ по снегу</b> — идти | <b>ЛКМ по 🎥</b> — действие | <b>[C]</b> Камера
             </div>
         </div>
 
-        <!-- Интерактивное QTE-окно (Спасение Тёмы в Акте 3) -->
+        <!-- ================= МИНИ-ИГРЫ ДЛЯ ВСЕХ 5 АКТОВ ================= -->
+
+        <!-- МИНИ-ИГРА АКТА 1: Настройка фокуса замёрзшего объектива (3 попадания) -->
+        <div id="focusModal" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto bg-slate-950/95 border-2 border-emerald-500 rounded-xl p-5 w-80 sm:w-96 text-center shadow-2xl">
+            <div class="text-emerald-400 font-black text-base uppercase tracking-wider mb-1">🎥 ФОКУСИРОВКА ОБЪЕКТИВА</div>
+            <p class="text-slate-300 text-xs mb-3">Линза замёрзла на морозе! Поймайте бегунок в <b class="text-emerald-400">зелёную зону</b> (<span id="focusStepText">0 / 2</span>), чтобы сфокусировать кадр на парнях.</p>
+            <div class="relative w-full h-7 bg-slate-900 rounded-lg overflow-hidden border border-slate-600 mb-4">
+                <div id="focusTargetZone" class="absolute top-0 bottom-0 left-[36%] w-[26%] bg-emerald-500/35 border-x-2 border-emerald-400"></div>
+                <div id="focusCursor" class="absolute top-0 bottom-0 w-2.5 bg-white shadow-[0_0_10px_#fff]" style="left: 10%;"></div>
+            </div>
+            <button onclick="lockCameraFocus()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-slate-950 font-black rounded-lg uppercase tracking-widest text-sm shadow-lg cursor-pointer">
+                📸 ПОЙМАТЬ ФОКУС [КЛИК / E]
+            </button>
+        </div>
+
+        <!-- МИНИ-ИГРА АКТА 2: Пеленгация аномального гула микрофоном камеры -->
+        <div id="freqModal" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto bg-slate-950/95 border-2 border-cyan-400 rounded-xl p-5 w-80 sm:w-96 text-center shadow-2xl">
+            <div class="text-cyan-400 font-black text-base uppercase tracking-wider mb-1">🎙️ ПЕЛЕНГАЦИЯ СТРАННОГО ГУЛА</div>
+            <p class="text-slate-300 text-xs mb-3">Двигайте ползунок микрофона, пока волна не совпадёт с <b class="text-cyan-300">частотой гула из-за труб</b>, и удерживайте 2 сек!</p>
+            <canvas id="freqCanvas" width="320" height="80" class="w-full h-20 bg-slate-900 rounded border border-slate-700 mb-3"></canvas>
+            <input id="freqSlider" type="range" min="10" max="100" value="25" oninput="updateFreqSlider(this.value)" class="w-full accent-cyan-400 cursor-pointer mb-2">
+            <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                <div id="freqLockBar" class="h-full bg-cyan-400 transition-all duration-100" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- МИНИ-ИГРА АКТА 3: Спасение Тёмы из радиоактивной ямы (QTE) -->
         <div id="qteModal" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto bg-slate-950/95 border-2 border-red-500 rounded-xl p-5 w-80 sm:w-96 text-center qte-pulse shadow-2xl">
             <div class="text-red-500 font-black text-lg uppercase tracking-wider mb-1">⚠️ ВЫСОКАЯ РАДИАЦИЯ!</div>
             <p class="text-slate-200 text-xs sm:text-sm mb-3">Тёма упал в фонящую яму! Быстро кликайте мышкой или жмите <b>[E] / Пробел</b>, чтобы вытащить его!</p>
@@ -210,20 +236,1838 @@
             </button>
         </div>
 
-        <!-- МИНИ-ИГРА АКТА 1: Настройка фокуса объектива камеры -->
-        <div id="focusModal" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto bg-slate-950/95 border-2 border-emerald-500 rounded-xl p-5 w-80 sm:w-96 text-center shadow-2xl">
-            <div class="text-emerald-400 font-black text-base uppercase tracking-wider mb-1">🎥 НАСТРОЙКА ФОКУСА КАМЕРЫ</div>
-            <p class="text-slate-300 text-xs mb-4">Объектив запотел на морозе! Поймайте бегунок в <b class="text-emerald-400">зелёную зону резкости</b>, чтобы начать запись.</p>
-            <div class="relative w-full h-7 bg-slate-900 rounded-lg overflow-hidden border border-slate-600 mb-4">
-                <!-- Зеленая целевая зона -->
-                <div class="absolute top-0 bottom-0 left-[38%] w-[24%] bg-emerald-500/35 border-x-2 border-emerald-400"></div>
-                <!-- Движущийся курсор фокуса -->
-                <div id="focusCursor" class="absolute top-0 bottom-0 w-2.5 bg-white shadow-[0_0_10px_#fff]" style="left: 10%;"></div>
+        <!-- МИНИ-ИГРА АКТА 4: Удержание луча фонаря в темном люке против статики -->
+        <div id="hatchModal" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto bg-slate-950/95 border-2 border-amber-400 rounded-xl p-5 w-80 sm:w-96 text-center shadow-2xl">
+            <div class="text-amber-400 font-black text-base uppercase tracking-wider mb-1">🔦 СТАТИКА В ТЁМНОМ ЛЮКЕ</div>
+            <p class="text-slate-300 text-xs mb-3">Повышенное статическое электричество сбивает приборы! Водите мышкой по шахте, чтобы <b class="text-amber-300">удерживать луч фонаря на бетонной плите</b> внизу!</p>
+            <canvas id="hatchCanvas" width="320" height="170" class="w-full h-40 bg-black rounded-lg border border-amber-500/50 mb-3 cursor-none"></canvas>
+            <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-amber-500/50">
+                <div id="hatchBar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-75" style="width: 0%;"></div>
             </div>
-            <button onclick="lockCameraFocus()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-slate-950 font-black rounded-lg uppercase tracking-widest text-sm shadow-lg cursor-pointer">
-                📸 СФОКУСИРОВАТЬ [КЛИК / E]
+        </div>
+
+        <!-- МИНИ-ИГРА АКТА 5: Спринт по следам на пульсе -->
+        <div id="sprintModal" class="hidden absolute top-24 left-1/2 -translate-x-1/2 pointer-events-auto bg-slate-950/95 border-2 border-red-500 rounded-xl p-4 w-80 sm:w-96 text-center qte-pulse shadow-2xl">
+            <div class="text-red-400 font-black text-sm uppercase tracking-wider mb-1">🏃 БЕГ ПО СЛЕДАМ НА СНЕГУ!</div>
+            <p class="text-slate-200 text-xs mb-2">Быстро жмите <b>[E] / Пробел</b> или кнопку ниже, чтобы добежать по следам до парней за плитой!</p>
+            <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-red-500/60 mb-2.5">
+                <div id="sprintBar" class="h-full bg-gradient-to-r from-red-500 to-emerald-400 transition-all duration-75" style="width: 10%;"></div>
+            </div>
+            <button onclick="triggerSprintStep()" class="w-full py-2 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black rounded-lg uppercase tracking-widest text-xs shadow-lg cursor-pointer">
+                👟 БЕЖАТЬ ИЗО ВСЕХ СИЛ [E / КЛИК]
             </button>
         </div>
 
-        <!-- МИНИ-ИГРА АКТА 2: Пеленгация источника гула микрофоном -->
-        <div id="freqModal" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto bg-slate-950/9
+        <!-- Диалоговое окно внизу экрана -->
+        <div id="dialogueBox" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl pointer-events-auto bg-slate-950/95 border-2 border-slate-600/90 rounded-xl p-4 shadow-2xl backdrop-blur-md">
+            <div class="flex items-start gap-4">
+                <div id="speakerBadge" class="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg border-2 border-slate-600 flex flex-col items-center justify-center bg-slate-900 overflow-hidden shadow-inner">
+                    <canvas id="portraitCanvas" width="80" height="80" class="w-full h-full"></canvas>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                        <span id="speakerName" class="font-black text-sm sm:text-base tracking-wide uppercase text-amber-400">
+                            САНЯ
+                        </span>
+                        <span id="dialogueStepInfo" class="text-[11px] text-slate-400 font-mono">1 / 2</span>
+                    </div>
+                    <p id="dialogueText" class="text-slate-100 text-xs sm:text-base leading-relaxed font-medium min-h-[3rem]">
+                        ...
+                    </p>
+                    <div class="mt-2.5 flex justify-end">
+                        <button onclick="nextDialogueLine()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-slate-950 font-black text-xs sm:text-sm px-4 py-1.5 rounded-lg uppercase tracking-wider transition cursor-pointer shadow">
+                            Далее [Пробел / ЛКМ] →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Логотип "РАДИАЦИЯ" в правом нижнем углу -->
+        <div class="absolute bottom-3 right-5 pointer-events-none select-none">
+            <div class="glitch-title text-white text-xl sm:text-2xl tracking-widest opacity-90">РАДИАЦИЯ</div>
+        </div>
+    </div>
+
+    <!-- МИНИМАЛИСТИЧНАЯ СТАРТОВАЯ ЗАСТАВКА ("РАДИАЦИЯ" + "НАЧАТЬ ВЫЛАЗКУ") -->
+    <div id="startScreen" class="fixed inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/88 backdrop-blur-sm p-6 text-center">
+        <div class="max-w-lg w-full flex flex-col items-center">
+            <h1 class="glitch-title text-5xl sm:text-7xl text-white mb-10 select-none">
+                РАДИАЦИЯ
+            </h1>
+
+            <div id="startBtnContainer">
+                <button onclick="startLoadingSequence()" class="group relative inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-base sm:text-lg px-10 py-4 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.5)] transition cursor-pointer uppercase tracking-widest">
+                    <span class="w-3 h-3 rounded-full bg-red-600 rec-dot"></span>
+                    <span>НАЧАТЬ ВЫЛАЗКУ</span>
+                </button>
+            </div>
+
+            <!-- Блок прогресса загрузки -->
+            <div id="loadingContainer" class="hidden w-full max-w-md mx-auto mt-2 bg-slate-900/95 border border-slate-700 rounded-xl p-5 text-left font-mono">
+                <div class="flex items-center justify-between text-xs text-emerald-400 mb-2">
+                    <span id="loadingStatusText">ВКЛЮЧЕНИЕ КАМЕРЫ...</span>
+                    <span id="loadingPercent">0%</span>
+                </div>
+                <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-700 mb-3">
+                    <div id="loadingProgressBar" class="h-full bg-emerald-500 transition-all duration-150" style="width: 0%;"></div>
+                </div>
+                <div id="loadingLog" class="text-[11px] text-slate-400 space-y-1 h-14 overflow-hidden">
+                    <div>> Проверка кассеты MiniDV... ОК</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ФИНАЛЬНЫЙ ЭКРАН ("TO BE CONTINUED...") -->
+    <div id="endingScreen" class="hidden fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/95 p-6 text-center">
+        <div class="max-w-lg w-full">
+            <div class="text-red-500 font-mono text-xs tracking-widest uppercase mb-2 animate-pulse">● СИГНАЛ КАМЕРЫ ПОТЕРЯН [00:04:31]</div>
+            <h2 class="glitch-title text-4xl sm:text-6xl text-white mb-4">TO BE CONTINUED</h2>
+            <p class="text-slate-300 text-sm sm:text-base mb-8 leading-relaxed">
+                Саня находит лежащих без сознания Тёму и Саню у бетонной стены верхнего яруса. Камера падает на заснеженный бетон...
+            </p>
+            <button onclick="restartFullGame()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-7 py-3 rounded-xl uppercase tracking-wider text-sm cursor-pointer shadow-lg transition">
+                🔄 Пройти вылазку заново
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. ЗВУКОВОЙ ДВИЖОК + АВТОМАТИЧЕСКОЕ ПОДКЛЮЧЕНИЕ ФАЙЛА Music.mp3
+        // =========================================================================
+        let audioCtx = null;
+        let isMuted = false;
+        let windGainNode = null;
+
+        function startBackgroundMusicFile() {
+            const audioEl = document.getElementById('bgMusic');
+            if (!audioEl) return;
+            audioEl.volume = 0.45;
+            audioEl.muted = isMuted;
+            audioEl.play().catch(() => {
+                // Если файла Music.mp3 пока нет рядом с index.html, игра спокойно работает со встроенным эмбиентом
+            });
+        }
+
+        function setMusicTensionVolume(vol) {
+            const audioEl = document.getElementById('bgMusic');
+            if (audioEl && !audioEl.paused) {
+                audioEl.volume = Math.max(0.1, Math.min(1.0, vol));
+            }
+        }
+
+        function handleCustomMusicUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const audioEl = document.getElementById('bgMusic');
+            audioEl.src = URL.createObjectURL(file);
+            audioEl.volume = 0.5;
+            audioEl.muted = isMuted;
+            audioEl.play().catch(() => {});
+        }
+
+        function initAudioEngine() {
+            if (audioCtx) return;
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+
+                const bufferSize = audioCtx.sampleRate * 2;
+                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+
+                const whiteNoise = audioCtx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                whiteNoise.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 210;
+                filter.Q.value = 1.8;
+
+                windGainNode = audioCtx.createGain();
+                windGainNode.gain.value = 0.04;
+
+                whiteNoise.connect(filter);
+                filter.connect(windGainNode);
+                windGainNode.connect(audioCtx.destination);
+                whiteNoise.start(0);
+            } catch (e) {
+                console.warn('Web Audio API не поддерживается:', e);
+            }
+        }
+
+        function playGeigerClick() {
+            if (!audioCtx || isMuted) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(1400 + Math.random() * 800, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.018);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.02);
+            } catch (e) {}
+        }
+
+        function playSnowStepSound() {
+            if (!audioCtx || isMuted) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(140 + Math.random() * 40, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.065);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.07);
+            } catch (e) {}
+        }
+
+        function playCameraBeep(freq = 920) {
+            if (!audioCtx || isMuted) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.095);
+            } catch (e) {}
+        }
+
+        function playDistantScreamSound() {
+            if (!audioCtx || isMuted) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc1.type = 'sawtooth';
+                osc2.type = 'triangle';
+                osc1.frequency.setValueAtTime(620, now);
+                osc1.frequency.linearRampToValueAtTime(340, now + 1.1);
+                osc2.frequency.setValueAtTime(635, now);
+                osc2.frequency.linearRampToValueAtTime(310, now + 1.1);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.15);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 1.2);
+                osc2.stop(now + 1.2);
+            } catch (e) {}
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('btnMute');
+            btn.textContent = isMuted ? '🔇' : '🔊';
+            if (windGainNode && audioCtx) {
+                windGainNode.gain.value = isMuted ? 0 : 0.04;
+            }
+            const audioEl = document.getElementById('bgMusic');
+            if (audioEl) {
+                audioEl.muted = isMuted;
+            }
+        }
+
+        // =========================================================================
+        // 2. СОСТОЯНИЕ ИГРЫ, ПЕРСОНАЖИ И 5 СЮЖЕТНЫХ ЛОКАЦИЙ (КАК В ВИДЕО)
+        // =========================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameStarted = false;
+        let currentAct = 1;
+        let cameraRecMode = false;
+        let flashlightOn = false;
+        let radiationLevel = 0.14;
+        let playerHealth = 100;
+        let screenShake = 0;
+
+        // Состояние всех 5 мини-игр
+        let qteActive = false;
+        let qteProgress = 25;
+
+        let focusMiniGameActive = false;
+        let focusCursorPos = 15;
+        let focusCursorDir = 1.4;
+        let focusHits = 0;
+
+        let freqMiniGameActive = false;
+        let freqTargetValue = 74;
+        let freqCurrentValue = 25;
+        let freqLockProgress = 0;
+
+        let hatchMiniGameActive = false;
+        let hatchProgress = 0;
+        let hatchBeamX = 160;
+        let hatchBeamY = 85;
+        let hatchTargetX = 160;
+        let hatchTargetY = 85;
+
+        let footprintsScanned = 0;
+        let sprintMiniGameActive = false;
+        let sprintProgress = 10;
+
+        let camScrollX = 0;
+        const WORLD_WIDTH = 2300;
+
+        // Главный герой: САНЯ (Оператор в коричневой парке и синей шапке)
+        const player = {
+            x: 340,
+            y: 0,
+            targetX: 340,
+            speed: 4.1,
+            dir: 1,
+            walkFrame: 0,
+            isMoving: false,
+            inHatch: false,
+            name: 'САНЯ'
+        };
+
+        // Второй САНЯ (в темно-синей куртке с красным капюшоном)
+        const npcSanya2 = {
+            x: 780,
+            dir: -1,
+            walkFrame: 0,
+            unconscious: false,
+            name: 'САНЯ'
+        };
+
+        // ТЁМА (Артём в бордовой шапке с белой полосой и помпоном)
+        const npcTema = {
+            x: 960,
+            dir: -1,
+            walkFrame: 0,
+            inPit: false,
+            unconscious: false,
+            name: 'ТЁМА'
+        };
+
+        // Снежинки и клик-маркеры
+        const snowflakes = [];
+        const clickMarkers = [];
+        let hotspot = { x: 860, yOffset: -95, label: 'Снять парней у вагонов', active: true, radius: 58 };
+
+        // Сable следов на снегу для Акта 5
+        const act5Footprints = [
+            { x: 650, scanned: false },
+            { x: 1020, scanned: false },
+            { x: 1380, scanned: false }
+        ];
+
+        // Диалоговая система
+        let dialogueQueue = [];
+        let dialogueIndex = 0;
+        let onDialogueComplete = null;
+
+        // =========================================================================
+        // 3. ТОЧНЫЕ ДИАЛОГИ И СЦЕНАРИЙ ПО АКТАМ (ТОЧЬ-В-ТОЧЬ КАК В ВИДЕО)
+        // =========================================================================
+        function loadAct(actNum) {
+            currentAct = actNum;
+            qteActive = false;
+            focusMiniGameActive = false;
+            freqMiniGameActive = false;
+            hatchMiniGameActive = false;
+            sprintMiniGameActive = false;
+
+            document.getElementById('qteModal').classList.add('hidden');
+            document.getElementById('focusModal').classList.add('hidden');
+            document.getElementById('freqModal').classList.add('hidden');
+            document.getElementById('hatchModal').classList.add('hidden');
+            document.getElementById('sprintModal').classList.add('hidden');
+            document.getElementById('radOverlay').classList.add('hidden');
+            document.getElementById('endingScreen').classList.add('hidden');
+
+            npcTema.inPit = false;
+            npcTema.unconscious = false;
+            npcSanya2.unconscious = false;
+            player.inHatch = false;
+            screenShake = 0;
+            setMusicTensionVolume(0.45);
+
+            if (actNum === 1) {
+                // АКТ 1: Заснеженные пути и зеленые вагоны
+                player.x = 320;
+                player.targetX = 320;
+                npcSanya2.x = 770;
+                npcTema.x = 950;
+                radiationLevel = 0.14;
+                setQuest('Подойти к парням у вагонов и сфокусировать камеру');
+                hotspot = {
+                    x: 840,
+                    yOffset: -110,
+                    label: 'Снять парней у вагонов',
+                    active: true,
+                    action: () => {
+                        if (!cameraRecMode) toggleCamera(true);
+                        openFocusMiniGame();
+                    }
+                };
+            } else if (actNum === 2) {
+                // АКТ 2: Спуск в заснеженный овраг и гул
+                player.x = 260;
+                player.targetX = 260;
+                npcSanya2.x = 980;
+                npcTema.x = 1140;
+                radiationLevel = 0.38;
+                setQuest('Спуститься по склону оврага и запеленговать странный гул');
+                hotspot = {
+                    x: 1050,
+                    yOffset: -105,
+                    label: 'Запеленговать странные звуки',
+                    active: true,
+                    action: () => {
+                        openFreqMiniGame();
+                    }
+                };
+            } else if (actNum === 3) {
+                // АКТ 3: Бетонные блоки и падение Тёмы в радиоактивную яму
+                player.x = 300;
+                player.targetX = 300;
+                npcSanya2.x = 1130;
+                npcTema.x = 1310;
+                npcTema.inPit = true;
+                radiationLevel = 6.85;
+                screenShake = 4;
+                setMusicTensionVolume(0.75);
+                document.getElementById('radOverlay').classList.remove('hidden');
+                setQuest('СРОЧНО: Подбежать к провалу и вытащить Тёму!');
+                hotspot = {
+                    x: 1280,
+                    yOffset: -70,
+                    label: 'ВЫТАЩИТЬ ТЁМУ ИЗ ЯМЫ!',
+                    active: true,
+                    action: () => {
+                        startQTERescue();
+                    }
+                };
+            } else if (actNum === 4) {
+                // АКТ 4: Верхний ярус цеха и открытый темный люк
+                player.x = 300;
+                player.targetX = 300;
+                npcSanya2.x = 1040;
+                npcTema.x = 1230;
+                radiationLevel = 1.45;
+                setQuest('Осмотреть темный люк на верхнем ярусе цеха (Включите свет [F])');
+                hotspot = {
+                    x: 1120,
+                    yOffset: -85,
+                    label: 'Спуститься в люк (Саня)',
+                    active: true,
+                    action: () => {
+                        if (!flashlightOn) toggleFlashlight(true);
+                        if (!cameraRecMode) toggleCamera(true);
+                        startDialogue([
+                            {
+                                speaker: 'sanya2',
+                                name: 'САНЯ',
+                                text: '«Решил у нас пойти опытный профессионал, чтобы посмотреть, что там внизу, потому что там глубоко, темно...»'
+                            },
+                            {
+                                speaker: 'sanya2',
+                                name: 'САНЯ',
+                                text: '«...и дозиметры показывают какие-то звуки и приборы показывают... наличие статическ... статического электричества повышенного».'
+                            }
+                        ], () => {
+                            openHatchMiniGame();
+                        });
+                    }
+                };
+            } else if (actNum === 5) {
+                // АКТ 5: Заснеженные плиты на закате, крик и следы
+                player.x = 250;
+                player.targetX = 250;
+                npcSanya2.x = 1820;
+                npcTema.x = 1940;
+                npcSanya2.unconscious = true;
+                npcTema.unconscious = true;
+                radiationLevel = 3.90;
+                footprintsScanned = 0;
+                act5Footprints.forEach(fp => fp.scanned = false);
+                setMusicTensionVolume(0.8);
+                setQuest('Проверить верхние плиты цеха');
+
+                setTimeout(() => {
+                    playDistantScreamSound();
+                    screenShake = 8;
+                    setTimeout(() => { screenShake = 2; }, 900);
+                    startDialogue([
+                        {
+                            speaker: 'sanya1',
+                            name: 'САНЯ',
+                            text: '«Вы слышали это?! Это крики какие-то! Что-то случилось с парнями, надо срочно к ним! Где они? Я даже не вижу, где они... А... всё, по следам, по следам за мной!»'
+                        }
+                    ], () => {
+                        setQuest('Просканируйте 3 цепочки следов на снегу (1 / 3)');
+                        updateAct5FootprintHotspot();
+                    });
+                }, 600);
+
+                hotspot = {
+                    x: 650,
+                    yOffset: -60,
+                    label: 'Изучить следы на снегу [1/3]',
+                    active: true,
+                    action: () => {}
+                };
+            }
+        }
+
+        function setQuest(text) {
+            document.getElementById('questText').textContent = text;
+        }
+
+        function toggleActMenu() {
+            document.getElementById('actMenu').classList.toggle('hidden');
+        }
+
+        // =========================================================================
+        // 4. ЛОГИКА ВСЕХ 5 ИНТЕРАКТИВНЫХ МИНИ-ИГР
+        // =========================================================================
+
+        // --- МИНИ-ИГРА АКТА 1: Фокусировка объектива ---
+        function openFocusMiniGame() {
+            hotspot.active = false;
+            focusMiniGameActive = true;
+            focusHits = 0;
+            focusCursorPos = 10;
+            document.getElementById('focusStepText').textContent = '0 / 2';
+            document.getElementById('focusModal').classList.remove('hidden');
+            playCameraBeep(700);
+        }
+
+        function lockCameraFocus() {
+            if (!focusMiniGameActive) return;
+            if (focusCursorPos >= 34 && focusCursorPos <= 64) {
+                focusHits++;
+                playCameraBeep(1150);
+                document.getElementById('focusStepText').textContent = `${focusHits} / 2`;
+                if (focusHits >= 2) {
+                    focusMiniGameActive = false;
+                    document.getElementById('focusModal').classList.add('hidden');
+                    startDialogue([
+                        {
+                            speaker: 'sanya2',
+                            name: 'САНЯ',
+                            text: '«Итак, нам местный житель сказал, что... вот там творится что-то неладное или необъяснимое. И сейчас мы это проверим, что там происходит на самом деле. Следите за нами».'
+                        },
+                        {
+                            speaker: 'tema',
+                            name: 'ТЁМА',
+                            text: '«Я, конечно, не совсем доверяю местным жителям, но хочу проверить».'
+                        }
+                    ], () => {
+                        setQuest('Идти направо к спуску в снежный овраг →');
+                        hotspot = {
+                            x: 1620,
+                            yOffset: -90,
+                            label: 'Спуститься в овраг →',
+                            active: true,
+                            action: () => loadAct(2)
+                        };
+                    });
+                }
+            } else {
+                playCameraBeep(320);
+                screenShake = 4;
+                setTimeout(() => { screenShake = 0; }, 250);
+            }
+        }
+
+        // --- МИНИ-ИГРА АКТА 2: Пеленгация странного гула ---
+        function openFreqMiniGame() {
+            hotspot.active = false;
+            freqMiniGameActive = true;
+            freqLockProgress = 0;
+            freqCurrentValue = 25;
+            document.getElementById('freqSlider').value = 25;
+            document.getElementById('freqLockBar').style.width = '0%';
+            document.getElementById('freqModal').classList.remove('hidden');
+            playCameraBeep(640);
+        }
+
+        function updateFreqSlider(val) {
+            freqCurrentValue = Number(val);
+            playGeigerClick();
+        }
+
+        function completeFreqMiniGame() {
+            freqMiniGameActive = false;
+            document.getElementById('freqModal').classList.add('hidden');
+            playCameraBeep(1200);
+            startDialogue([
+                {
+                    speaker: 'tema',
+                    name: 'ТЁМА',
+                    text: '«Вы тоже слышите эти странные звуки, о которых говорила местная жительница?»'
+                },
+                {
+                    speaker: 'sanya2',
+                    name: 'САНЯ',
+                    text: '«Короче, нам надо будет зайти с той стороны... с той, вот с той стороны. Там пройдём, и там уже тогда по месту сориентируемся».'
+                }
+            ], () => {
+                setQuest('Обойти бетонные конструкции справа →');
+                hotspot = {
+                    x: 1720,
+                    yOffset: -90,
+                    label: 'Пройти к бетонным блокам →',
+                    active: true,
+                    action: () => loadAct(3)
+                };
+            });
+        }
+
+        // --- МИНИ-ИГРА АКТА 3: Спасение Тёмы из ямы ---
+        function startQTERescue() {
+            hotspot.active = false;
+            qteActive = true;
+            qteProgress = 25;
+            document.getElementById('qteModal').classList.remove('hidden');
+            playCameraBeep(520);
+        }
+
+        function triggerQTEBoost() {
+            if (!qteActive) return;
+            qteProgress = Math.min(100, qteProgress + 16);
+            document.getElementById('qteBar').style.width = qteProgress + '%';
+            playGeigerClick();
+
+            if (qteProgress >= 100) {
+                qteActive = false;
+                document.getElementById('qteModal').classList.add('hidden');
+                npcTema.inPit = false;
+                radiationLevel = 1.95;
+                screenShake = 1.5;
+
+                startDialogue([
+                    {
+                        speaker: 'tema',
+                        name: 'ТЁМА',
+                        text: '«А-а-ай!»'
+                    },
+                    {
+                        speaker: 'sanya1',
+                        name: 'САНЯ',
+                        text: '«Чёрт, Тёма, чё-то такое! Радиация! Тёма, уходим!»'
+                    },
+                    {
+                        speaker: 'tema',
+                        name: 'ТЁМА',
+                        text: '«Нет, всё равно надо уходить! Здесь много радиации, счётчик трещит!»'
+                    }
+                ], () => {
+                    document.getElementById('radOverlay').classList.add('hidden');
+                    screenShake = 0;
+                    setQuest('Уходить из радиоактивной зоны к лестнице в цех →');
+                    hotspot = {
+                        x: 1780,
+                        yOffset: -95,
+                        label: 'Подняться на верхний ярус цеха →',
+                        active: true,
+                        action: () => loadAct(4)
+                    };
+                });
+            }
+        }
+
+        // --- МИНИ-ИГРА АКТА 4: Удержание луча фонаря в темном люке ---
+        function openHatchMiniGame() {
+            hotspot.active = false;
+            player.inHatch = true;
+            hatchMiniGameActive = true;
+            hatchProgress = 0;
+            hatchBeamX = 160;
+            hatchBeamY = 85;
+            hatchTargetX = 160;
+            hatchTargetY = 85;
+            document.getElementById('hatchBar').style.width = '0%';
+            document.getElementById('hatchModal').classList.remove('hidden');
+
+            const hCanvas = document.getElementById('hatchCanvas');
+            hCanvas.onmousemove = (e) => {
+                const rect = hCanvas.getBoundingClientRect();
+                hatchBeamX = ((e.clientX - rect.left) / rect.width) * hCanvas.width;
+                hatchBeamY = ((e.clientY - rect.top) / rect.height) * hCanvas.height;
+            };
+            hCanvas.ontouchmove = (e) => {
+                if (!e.touches[0]) return;
+                const rect = hCanvas.getBoundingClientRect();
+                hatchBeamX = ((e.touches[0].clientX - rect.left) / rect.width) * hCanvas.width;
+                hatchBeamY = ((e.touches[0].clientY - rect.top) / rect.height) * hCanvas.height;
+            };
+        }
+
+        function completeHatchMiniGame() {
+            hatchMiniGameActive = false;
+            document.getElementById('hatchModal').classList.add('hidden');
+            player.inHatch = false;
+            playCameraBeep(1100);
+            startDialogue([
+                {
+                    speaker: 'sanya1',
+                    name: 'САНЯ',
+                    text: '«Внизу бетонные перекрытия уходят глубоко в темноту, слышен гул, будто опускается бетон... Вылезаю наверх!»'
+                }
+            ], () => {
+                setQuest('Выйти на открытые заснеженные плиты цеха →');
+                hotspot = {
+                    x: 1760,
+                    yOffset: -95,
+                    label: 'Выйти на плиты верхнего этажа →',
+                    active: true,
+                    action: () => loadAct(5)
+                };
+            });
+        }
+
+        // --- МИНИ-ИГРА АКТА 5: Сканирование следов + Спринт ---
+        function updateAct5FootprintHotspot() {
+            if (footprintsScanned < act5Footprints.length) {
+                const fp = act5Footprints[footprintsScanned];
+                hotspot = {
+                    x: fp.x,
+                    yOffset: -55,
+                    label: `Следы на снегу [${footprintsScanned + 1}/3]`,
+                    active: true,
+                    action: () => {
+                        fp.scanned = true;
+                        footprintsScanned++;
+                        playCameraBeep(980);
+                        if (footprintsScanned < act5Footprints.length) {
+                            setQuest(`Идите по следам дальше (${footprintsScanned + 1} / 3)`);
+                            updateAct5FootprintHotspot();
+                        } else {
+                            setQuest('СРОЧНО: Бегите за поворотную плиту к парням!');
+                            openSprintMiniGame();
+                        }
+                    }
+                };
+            }
+        }
+
+        function openSprintMiniGame() {
+            hotspot.active = false;
+            sprintMiniGameActive = true;
+            sprintProgress = 12;
+            document.getElementById('sprintBar').style.width = '12%';
+            document.getElementById('sprintModal').classList.remove('hidden');
+        }
+
+        function triggerSprintStep() {
+            if (!sprintMiniGameActive) return;
+            sprintProgress = Math.min(100, sprintProgress + 15);
+            player.x = Math.min(1760, player.x + 62);
+            player.targetX = player.x;
+            player.walkFrame += 0.9;
+            screenShake = 5;
+            playSnowStepSound();
+            document.getElementById('sprintBar').style.width = sprintProgress + '%';
+
+            if (sprintProgress >= 100) {
+                sprintMiniGameActive = false;
+                document.getElementById('sprintModal').classList.add('hidden');
+                player.x = 1740;
+                player.targetX = 1740;
+                triggerEndingSequence();
+            }
+        }
+
+        function triggerEndingSequence() {
+            if (!cameraRecMode) toggleCamera(true);
+            screenShake = 10;
+            radiationLevel = 9.99;
+            document.getElementById('radOverlay').classList.remove('hidden');
+
+            startDialogue([
+                {
+                    speaker: 'sanya1',
+                    name: 'САНЯ',
+                    text: '«Пацаны?! Тёма! Саня! Они лежат без сознания у стены... Чёрт, голова кружится...»'
+                }
+            ], () => {
+                setTimeout(() => {
+                    document.getElementById('endingScreen').classList.remove('hidden');
+                }, 400);
+            });
+        }
+
+        // =========================================================================
+        // 5. ДИАЛОГОВАЯ СИСТЕМА И ПОРТРЕТЫ
+        // =========================================================================
+        function startDialogue(lines, callback) {
+            dialogueQueue = lines;
+            dialogueIndex = 0;
+            onDialogueComplete = callback || null;
+            document.getElementById('dialogueBox').classList.remove('hidden');
+            renderDialogueLine();
+        }
+
+        function renderDialogueLine() {
+            const item = dialogueQueue[dialogueIndex];
+            if (!item) return;
+            const nameEl = document.getElementById('speakerName');
+            nameEl.textContent = item.name;
+            if (item.speaker === 'sanya1') nameEl.className = 'font-black text-sm sm:text-base tracking-wide uppercase text-amber-400';
+            if (item.speaker === 'sanya2') nameEl.className = 'font-black text-sm sm:text-base tracking-wide uppercase text-sky-400';
+            if (item.speaker === 'tema') nameEl.className = 'font-black text-sm sm:text-base tracking-wide uppercase text-rose-400';
+
+            document.getElementById('dialogueStepInfo').textContent = `${dialogueIndex + 1} / ${dialogueQueue.length}`;
+            document.getElementById('dialogueText').textContent = item.text;
+            drawSpeakerPortrait(item.speaker);
+            playCameraBeep(780);
+        }
+
+        function nextDialogueLine() {
+            if (dialogueQueue.length === 0) return;
+            dialogueIndex++;
+            if (dialogueIndex < dialogueQueue.length) {
+                renderDialogueLine();
+            } else {
+                document.getElementById('dialogueBox').classList.add('hidden');
+                dialogueQueue = [];
+                if (onDialogueComplete) {
+                    const fn = onDialogueComplete;
+                    onDialogueComplete = null;
+                    fn();
+                }
+            }
+        }
+
+        function drawSpeakerPortrait(speakerKey) {
+            const pCanvas = document.getElementById('portraitCanvas');
+            const pCtx = pCanvas.getContext('2d');
+            pCtx.clearRect(0, 0, 80, 80);
+
+            pCtx.fillStyle = '#0f172a';
+            pCtx.fillRect(0, 0, 80, 80);
+
+            if (speakerKey === 'sanya1') {
+                pCtx.fillStyle = '#6b4423';
+                pCtx.fillRect(14, 48, 52, 32);
+                pCtx.fillStyle = '#f1c6b3';
+                pCtx.beginPath();
+                pCtx.arc(40, 36, 16, 0, Math.PI * 2);
+                pCtx.fill();
+                pCtx.fillStyle = '#1d4ed8';
+                pCtx.beginPath();
+                pCtx.arc(40, 29, 17, Math.PI, 0);
+                pCtx.fill();
+                pCtx.fillRect(22, 24, 36, 7);
+                pCtx.fillStyle = '#2563eb';
+                pCtx.fillRect(33, 34, 3, 3);
+                pCtx.fillRect(44, 34, 3, 3);
+            } else if (speakerKey === 'sanya2') {
+                pCtx.fillStyle = '#1e293b';
+                pCtx.beginPath();
+                pCtx.arc(40, 38, 24, 0, Math.PI * 2);
+                pCtx.fill();
+                pCtx.strokeStyle = '#dc2626';
+                pCtx.lineWidth = 4;
+                pCtx.stroke();
+                pCtx.fillStyle = '#1e293b';
+                pCtx.fillRect(14, 50, 52, 30);
+                pCtx.fillStyle = '#eab89e';
+                pCtx.beginPath();
+                pCtx.arc(40, 37, 14, 0, Math.PI * 2);
+                pCtx.fill();
+                pCtx.fillStyle = '#0f172a';
+                pCtx.fillRect(25, 22, 30, 8);
+            } else {
+                pCtx.fillStyle = '#0f172a';
+                pCtx.fillRect(16, 50, 48, 30);
+                pCtx.fillStyle = '#f3cbb8';
+                pCtx.beginPath();
+                pCtx.arc(40, 38, 15, 0, Math.PI * 2);
+                pCtx.fill();
+                pCtx.fillStyle = '#881337';
+                pCtx.beginPath();
+                pCtx.arc(40, 30, 17, Math.PI, 0);
+                pCtx.fill();
+                pCtx.fillStyle = '#f8fafc';
+                pCtx.fillRect(23, 25, 34, 5);
+                pCtx.beginPath();
+                pCtx.arc(40, 12, 6, 0, Math.PI * 2);
+                pCtx.fillStyle = '#9f1239';
+                pCtx.fill();
+            }
+        }
+
+        // =========================================================================
+        // 6. КАМЕРА И ФОНАРИК
+        // =========================================================================
+        function toggleCamera(forceState) {
+            cameraRecMode = typeof forceState === 'boolean' ? forceState : !cameraRecMode;
+            const overlay = document.getElementById('camcorderOverlay');
+            const dot = document.getElementById('camBtnDot');
+            const text = document.getElementById('camBtnText');
+
+            if (cameraRecMode) {
+                overlay.classList.remove('hidden');
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 rec-dot';
+                text.textContent = 'Камера (Запись)';
+            } else {
+                overlay.classList.add('hidden');
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+                text.textContent = 'Камера [C]';
+            }
+            playCameraBeep(cameraRecMode ? 1040 : 620);
+        }
+
+        function toggleFlashlight(forceState) {
+            flashlightOn = typeof forceState === 'boolean' ? forceState : !flashlightOn;
+            const dot = document.getElementById('flashDot');
+            dot.className = flashlightOn
+                ? 'w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]'
+                : 'w-2.5 h-2.5 rounded-full bg-slate-500';
+            playCameraBeep(740);
+        }
+
+        // =========================================================================
+        // 7. УПРАВЛЕНИЕ МЫШЬЮ И КЛАВИАТУРОЙ
+        // =========================================================================
+        let keysPressed = {};
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameStarted) return;
+            const code = e.code;
+            keysPressed[code] = true;
+
+            if (code === 'KeyC') {
+                toggleCamera();
+            } else if (code === 'KeyF') {
+                toggleFlashlight();
+            } else if (code === 'Space' || code === 'KeyE') {
+                if (focusMiniGameActive) {
+                    e.preventDefault();
+                    lockCameraFocus();
+                    return;
+                }
+                if (qteActive) {
+                    e.preventDefault();
+                    triggerQTEBoost();
+                    return;
+                }
+                if (sprintMiniGameActive) {
+                    e.preventDefault();
+                    triggerSprintStep();
+                    return;
+                }
+                if (dialogueQueue.length > 0) {
+                    e.preventDefault();
+                    nextDialogueLine();
+                    return;
+                }
+                if (hotspot && hotspot.active && Math.abs(player.x - hotspot.x) < 170) {
+                    hotspot.action();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keysPressed[e.code] = false;
+        });
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!gameStarted) return;
+            if (dialogueQueue.length > 0 || qteActive || focusMiniGameActive || freqMiniGameActive || hatchMiniGameActive || sprintMiniGameActive) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            const worldX = clickX + camScrollX;
+            const groundY = canvas.height * 0.78;
+
+            if (hotspot && hotspot.active) {
+                const hx = hotspot.x;
+                const hy = groundY + hotspot.yOffset;
+                const dist = Math.hypot(worldX - hx, clickY - hy);
+                if (dist <= 75) {
+                    player.targetX = Math.max(120, Math.min(WORLD_WIDTH - 120, hx - 70));
+                    player.pendingHotspotAction = true;
+                    clickMarkers.push({ x: hx, y: groundY - 6, r: 4, alpha: 1, color: '#10b981' });
+                    return;
+                }
+            }
+
+            player.pendingHotspotAction = false;
+            player.targetX = Math.max(100, Math.min(WORLD_WIDTH - 120, worldX));
+            clickMarkers.push({ x: worldX, y: Math.max(groundY - 18, Math.min(groundY + 35, clickY)), r: 4, alpha: 1, color: '#38bdf8' });
+        });
+
+        // =========================================================================
+        // 8. ЗАСТАВКА И ЗАПУСК ИГРЫ (+ СТАРТ Music.mp3)
+        // =========================================================================
+        function startLoadingSequence() {
+            initAudioEngine();
+            startBackgroundMusicFile();
+            playCameraBeep(880);
+
+            document.getElementById('startBtnContainer').classList.add('hidden');
+            const loadBox = document.getElementById('loadingContainer');
+            loadBox.classList.remove('hidden');
+
+            const bar = document.getElementById('loadingProgressBar');
+            const pct = document.getElementById('loadingPercent');
+            const status = document.getElementById('loadingStatusText');
+            const log = document.getElementById('loadingLog');
+
+            const steps = [
+                { p: 25, s: 'КАЛИБРОВКА ДОЗИМЕТРА...', l: '> Фоновое излучение: 0.14 мкЗв/ч' },
+                { p: 60, s: 'ФОКУСИРОВКА ОБЪЕКТИВА...', l: '> Запись звука: ВКЛ' },
+                { p: 90, s: 'ЗАГРУЗКА ПРОМЗОНЫ...', l: '> Начало съемки вылазки...' },
+                { p: 100, s: 'ГОТОВО К ЗАПИСИ', l: '> REC [00:00:01]' }
+            ];
+
+            let idx = 0;
+            const timer = setInterval(() => {
+                if (idx < steps.length) {
+                    const st = steps[idx];
+                    bar.style.width = st.p + '%';
+                    pct.textContent = st.p + '%';
+                    status.textContent = st.s;
+                    const line = document.createElement('div');
+                    line.textContent = st.l;
+                    log.appendChild(line);
+                    log.scrollTop = log.scrollHeight;
+                    playGeigerClick();
+                    idx++;
+                } else {
+                    clearInterval(timer);
+                    document.getElementById('startScreen').classList.add('hidden');
+                    document.getElementById('gameHUD').classList.remove('hidden');
+                    gameStarted = true;
+                    loadAct(1);
+                }
+            }, 350);
+        }
+
+        function restartFullGame() {
+            loadAct(1);
+        }
+
+        // =========================================================================
+        // 9. ОТРИСОВКА 5 РАЗНЫХ ЛОКАЦИЙ И МИНИ-ИГР
+        // =========================================================================
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (snowflakes.length === 0) {
+                for (let i = 0; i < 110; i++) {
+                    snowflakes.push({
+                        x: Math.random() * window.innerWidth,
+                        y: Math.random() * window.innerHeight,
+                        r: 1.2 + Math.random() * 2.6,
+                        vy: 0.7 + Math.random() * 1.6,
+                        vx: -0.5 + Math.random() * 1.2
+                    });
+                }
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let stepSoundTimer = 0;
+
+        function updateGame() {
+            if (!gameStarted) return;
+
+            // Обновление мини-игры Акта 1 (Фокусировка)
+            if (focusMiniGameActive) {
+                focusCursorPos += focusCursorDir * 1.6;
+                if (focusCursorPos >= 92 || focusCursorPos <= 4) {
+                    focusCursorDir *= -1;
+                }
+                document.getElementById('focusCursor').style.left = focusCursorPos + '%';
+            }
+
+            // Обновление мини-игры Акта 2 (Пеленгация частоты гула)
+            if (freqMiniGameActive) {
+                drawFreqOscilloscope();
+                const diff = Math.abs(freqCurrentValue - freqTargetValue);
+                if (diff <= 8) {
+                    freqLockProgress = Math.min(100, freqLockProgress + 1.3);
+                    if (Math.random() < 0.25) playGeigerClick();
+                } else {
+                    freqLockProgress = Math.max(0, freqLockProgress - 0.6);
+                }
+                document.getElementById('freqLockBar').style.width = freqLockProgress + '%';
+                if (freqLockProgress >= 100) {
+                    completeFreqMiniGame();
+                }
+            }
+
+            // Обновление мини-игры Акта 3 (Спасение Тёмы QTE)
+            if (qteActive) {
+                qteProgress = Math.max(5, qteProgress - 0.22);
+                document.getElementById('qteBar').style.width = qteProgress + '%';
+                playerHealth = Math.max(25, playerHealth - 0.03);
+                document.getElementById('healthBar').style.width = playerHealth + '%';
+            }
+
+            // Обновление мини-игры Акта 4 (Удержание фонарика в люке)
+            if (hatchMiniGameActive) {
+                drawHatchMiniGameCanvas();
+                const dist = Math.hypot(hatchBeamX - hatchTargetX, hatchBeamY - hatchTargetY);
+                if (dist < 42) {
+                    hatchProgress = Math.min(100, hatchProgress + 0.75);
+                } else {
+                    hatchProgress = Math.max(0, hatchProgress - 0.25);
+                }
+                document.getElementById('hatchBar').style.width = hatchProgress + '%';
+                if (hatchProgress >= 100) {
+                    completeHatchMiniGame();
+                }
+            }
+
+            // Обновление мини-игры Акта 5 (Спринт по следам)
+            if (sprintMiniGameActive) {
+                sprintProgress = Math.max(5, sprintProgress - 0.18);
+                document.getElementById('sprintBar').style.width = sprintProgress + '%';
+            }
+
+            const anyModalOpen = dialogueQueue.length > 0 || qteActive || focusMiniGameActive || freqMiniGameActive || hatchMiniGameActive || sprintMiniGameActive;
+
+            if (!anyModalOpen) {
+                if (keysPressed['KeyA'] || keysPressed['ArrowLeft']) {
+                    player.targetX = Math.max(100, player.x - 18);
+                    player.pendingHotspotAction = false;
+                }
+                if (keysPressed['KeyD'] || keysPressed['ArrowRight']) {
+                    player.targetX = Math.min(WORLD_WIDTH - 120, player.x + 18);
+                    player.pendingHotspotAction = false;
+                }
+            }
+
+            const dx = player.targetX - player.x;
+            if (Math.abs(dx) > 4 && !anyModalOpen) {
+                player.isMoving = true;
+                player.dir = dx > 0 ? 1 : -1;
+                player.x += Math.sign(dx) * player.speed;
+                player.walkFrame += 0.18;
+
+                stepSoundTimer++;
+                if (stepSoundTimer % 18 === 0) {
+                    playSnowStepSound();
+                }
+            } else {
+                player.isMoving = false;
+                if (player.pendingHotspotAction && hotspot && hotspot.active) {
+                    player.pendingHotspotAction = false;
+                    hotspot.action();
+                }
+            }
+
+            const desiredCamX = player.x - canvas.width * 0.35;
+            const maxCamX = WORLD_WIDTH - canvas.width;
+            camScrollX += (Math.max(0, Math.min(maxCamX, desiredCamX)) - camScrollX) * 0.1;
+
+            const noisyRad = Math.max(0.10, radiationLevel + (Math.random() - 0.5) * 0.08);
+            const dosEl = document.getElementById('dosimeterValue');
+            dosEl.textContent = noisyRad.toFixed(2) + ' мкЗв/ч';
+            if (noisyRad > 2.0) {
+                dosEl.className = 'font-bold text-red-400 tracking-wider animate-pulse';
+                if (Math.random() < 0.22) playGeigerClick();
+            } else {
+                dosEl.className = 'font-bold text-emerald-400 tracking-wider';
+            }
+
+            if (cameraRecMode) {
+                const now = new Date();
+                const ms = String(Math.floor(now.getMilliseconds() / 40)).padStart(2, '0');
+                const sec = String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('camTimecode').textContent = `00:0${currentAct}:${sec}:${ms}`;
+            }
+        }
+
+        function drawFreqOscilloscope() {
+            const fCanvas = document.getElementById('freqCanvas');
+            const fCtx = fCanvas.getContext('2d');
+            fCtx.fillStyle = '#090d16';
+            fCtx.fillRect(0, 0, fCanvas.width, fCanvas.height);
+
+            // Сетка
+            fCtx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+            fCtx.lineWidth = 1;
+            for (let x = 0; x < fCanvas.width; x += 32) {
+                fCtx.beginPath(); fCtx.moveTo(x, 0); fCtx.lineTo(x, fCanvas.height); fCtx.stroke();
+            }
+
+            const t = performance.now() * 0.008;
+            // Целевая волна (пунктирная)
+            fCtx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+            fCtx.lineWidth = 2;
+            fCtx.beginPath();
+            for (let x = 0; x < fCanvas.width; x++) {
+                const y = 40 + Math.sin(x * (freqTargetValue * 0.0018) + t) * 24;
+                if (x === 0) fCtx.moveTo(x, y); else fCtx.lineTo(x, y);
+            }
+            fCtx.stroke();
+
+            // Текущая волна игрока
+            fCtx.strokeStyle = '#22d3ee';
+            fCtx.lineWidth = 2.5;
+            fCtx.beginPath();
+            for (let x = 0; x < fCanvas.width; x++) {
+                const y = 40 + Math.sin(x * (freqCurrentValue * 0.0018) + t) * 24;
+                if (x === 0) fCtx.moveTo(x, y); else fCtx.lineTo(x, y);
+            }
+            fCtx.stroke();
+        }
+
+        function drawHatchMiniGameCanvas() {
+            const hCanvas = document.getElementById('hatchCanvas');
+            const hCtx = hCanvas.getContext('2d');
+            const t = performance.now() * 0.003;
+
+            // Движение мишени на дне шахты + помехи от статики
+            hatchTargetX = 160 + Math.sin(t * 1.3) * 85;
+            hatchTargetY = 85 + Math.cos(t * 0.9) * 42;
+            hatchBeamX += (Math.random() - 0.5) * 4.2;
+            hatchBeamY += (Math.random() - 0.5) * 4.2;
+
+            hCtx.fillStyle = '#030712';
+            hCtx.fillRect(0, 0, hCanvas.width, hCanvas.height);
+
+            // Конструкции на дне люка
+            hCtx.fillStyle = '#334155';
+            hCtx.fillRect(hatchTargetX - 24, hatchTargetY - 16, 48, 32);
+            hCtx.strokeStyle = '#fbbf24';
+            hCtx.lineWidth = 2;
+            hCtx.strokeRect(hatchTargetX - 24, hatchTargetY - 16, 48, 32);
+
+            // Луч фонарика игрока
+            const grad = hCtx.createRadialGradient(hatchBeamX, hatchBeamY, 8, hatchBeamX, hatchBeamY, 55);
+            grad.addColorStop(0, 'rgba(254, 243, 199, 0.9)');
+            grad.addColorStop(0.5, 'rgba(251, 191, 36, 0.35)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0.92)');
+            hCtx.fillStyle = grad;
+            hCtx.fillRect(0, 0, hCanvas.width, hCanvas.height);
+
+            // Прицел фонарика
+            hCtx.strokeStyle = '#ffffff';
+            hCtx.lineWidth = 1.5;
+            hCtx.beginPath();
+            hCtx.arc(hatchBeamX, hatchBeamY, 18, 0, Math.PI * 2);
+            hCtx.stroke();
+        }
+
+        function renderScene() {
+            const W = canvas.width;
+            const H = canvas.height;
+            const groundY = H * 0.78;
+
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate((Math.random() - 0.5) * screenShake * 3, (Math.random() - 0.5) * screenShake * 3);
+            }
+
+            // 1. НЕБО В ЗАВИСИМОСТИ ОТ ЛОКАЦИИ
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+            if (currentAct === 1) {
+                skyGrad.addColorStop(0, '#7dd3fc');
+                skyGrad.addColorStop(0.6, '#bae6fd');
+                skyGrad.addColorStop(1, '#e2e8f0');
+            } else if (currentAct === 2) {
+                skyGrad.addColorStop(0, '#64748b');
+                skyGrad.addColorStop(0.65, '#94a3b8');
+                skyGrad.addColorStop(1, '#cbd5e1');
+            } else if (currentAct === 3) {
+                skyGrad.addColorStop(0, '#475569');
+                skyGrad.addColorStop(0.65, '#64748b');
+                skyGrad.addColorStop(1, '#94a3b8');
+            } else if (currentAct === 4) {
+                skyGrad.addColorStop(0, '#1e293b');
+                skyGrad.addColorStop(0.6, '#334155');
+                skyGrad.addColorStop(1, '#475569');
+            } else {
+                skyGrad.addColorStop(0, '#31102f');
+                skyGrad.addColorStop(0.5, '#7c2d12');
+                skyGrad.addColorStop(1, '#f97316');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // 2. УНИКАЛЬНОЕ ОКРУЖЕНИЕ ДЛЯ КАЖДОЙ ИЗ 5 ЛОКАЦИЙ
+            if (currentAct === 1) {
+                drawLocation1RailsAndCars(W, H, groundY);
+            } else if (currentAct === 2) {
+                drawLocation2SnowRavine(W, H, groundY);
+            } else if (currentAct === 3) {
+                drawLocation3ConcreteBlocksAndPit(W, H, groundY);
+            } else if (currentAct === 4) {
+                drawLocation4UpperHallAndHatch(W, H, groundY);
+            } else if (currentAct === 5) {
+                drawLocation5SunsetSlabsAndTracks(W, H, groundY);
+            }
+
+            // 3. МАРКЕРЫ КЛИКА МЫШЬЮ
+            for (let i = clickMarkers.length - 1; i >= 0; i--) {
+                const m = clickMarkers[i];
+                ctx.strokeStyle = m.color;
+                ctx.globalAlpha = m.alpha;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.ellipse(m.x - camScrollX, m.y, m.r * 1.8, m.r * 0.7, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                m.r += 0.9;
+                m.alpha -= 0.04;
+                if (m.alpha <= 0) clickMarkers.splice(i, 1);
+            }
+            ctx.globalAlpha = 1;
+
+            // 4. ОТРИСОВКА ПЕРСОНАЖЕЙ (САНЯ, САНЯ, ТЁМА)
+            drawCharacterSanya2(npcSanya2.x - camScrollX, groundY - 8);
+            drawCharacterTema(npcTema.x - camScrollX, groundY - 8);
+            drawCharacterPlayer(player.x - camScrollX, groundY - 4);
+
+            // 5. ПЕРЕДНИЙ ПЛАН (Ближние плиты с арматурой)
+            const fgScroll = camScrollX * 1.18;
+            drawConcreteSlabWithLoops(1350 - fgScroll, groundY + 12, 340, 74);
+
+            // 6. ИНТЕРАКТИВНЫЙ ХОТСПОТ (Иконка видеокамеры)
+            if (hotspot && hotspot.active) {
+                drawInteractiveHotspot(hotspot.x - camScrollX, groundY + hotspot.yOffset, hotspot.label);
+            }
+
+            // 7. ЛУЧ ФОНАРИКА
+            if (flashlightOn) {
+                const px = player.x - camScrollX + (player.dir * 24);
+                const py = groundY - 68;
+                const grad = ctx.createRadialGradient(px, py, 10, px + player.dir * 220, py + 20, 320);
+                grad.addColorStop(0, 'rgba(254, 243, 199, 0.55)');
+                grad.addColorStop(0.6, 'rgba(253, 224, 71, 0.18)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(px + player.dir * 380, py - 120);
+                ctx.lineTo(px + player.dir * 380, py + 150);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // 8. ПАДАЮЩИЙ СНЕГ
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+            for (let s of snowflakes) {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+                s.y += s.vy;
+                s.x += s.vx;
+                if (s.y > H) { s.y = -5; s.x = Math.random() * W; }
+                if (s.x > W) s.x = 0;
+                if (s.x < 0) s.x = W;
+            }
+
+            ctx.restore();
+        }
+
+        // --- ЛОКАЦИЯ 1: Заснеженные ж/д пути и зелёные вагоны ---
+        function drawLocation1RailsAndCars(W, H, groundY) {
+            const farScroll = camScrollX * 0.25;
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(60 - farScroll, groundY - 310, 560, 310);
+            ctx.fillStyle = '#334155';
+            for (let x = 80; x < 600; x += 45) {
+                ctx.fillRect(x - farScroll, groundY - 310, 4, 310);
+            }
+            drawStripedChimney(1020 - farScroll, groundY, 54, 380);
+            drawStripedChimney(1160 - farScroll, groundY, 68, 410);
+
+            drawSnowGroundAndRails(W, H, groundY, true);
+
+            const midScroll = camScrollX * 0.75;
+            drawFreightCar(120 - midScroll, groundY - 182, 460, 152, '2451');
+            drawFreightCar(650 - midScroll, groundY - 182, 460, 152, '8094');
+            drawFreightCar(1180 - midScroll, groundY - 182, 460, 152, '6076');
+            drawConcreteSlabWithLoops(50 - camScrollX, groundY - 48, 250, 54);
+        }
+
+        // --- ЛОКАЦИЯ 2: Заснеженный овраг, битый кирпич и опоры ---
+        function drawLocation2SnowRavine(W, H, groundY) {
+            const farScroll = camScrollX * 0.3;
+            ctx.fillStyle = '#334155';
+            for (let i = 0; i < 18; i++) {
+                const tx = i * 140 - farScroll;
+                ctx.beginPath();
+                ctx.moveTo(tx, groundY - 60);
+                ctx.lineTo(tx + 24, groundY - 210 - (i % 3) * 35);
+                ctx.lineTo(tx + 48, groundY - 60);
+                ctx.fill();
+            }
+
+            drawSnowGroundAndRails(W, H, groundY, false);
+
+            const midScroll = camScrollX * 0.8;
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath();
+            ctx.moveTo(-100 - midScroll, groundY - 180);
+            ctx.lineTo(650 - midScroll, groundY);
+            ctx.lineTo(-100 - midScroll, groundY);
+            ctx.fill();
+
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(920 - midScroll, groundY - 260, 90, 260);
+            ctx.fillRect(1180 - midScroll, groundY - 260, 90, 260);
+            ctx.fillRect(890 - midScroll, groundY - 260, 420, 48);
+
+            ctx.fillStyle = '#991b1b';
+            for (let b = 0; b < 14; b++) {
+                ctx.fillRect(420 + b * 65 - camScrollX, groundY - 14 + (b % 3) * 6, 22, 11);
+            }
+        }
+
+        // --- ЛОКАЦИЯ 3: Лабиринт бетонных кубов с арматурой и провал Тёмы ---
+        function drawLocation3ConcreteBlocksAndPit(W, H, groundY) {
+            const farScroll = camScrollX * 0.35;
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(200 - farScroll, groundY - 300, 980, 300);
+            ctx.fillStyle = '#1e293b';
+            for (let i = 0; i < 6; i++) {
+                ctx.fillRect(260 + i * 150 - farScroll, groundY - 250, 95, 250);
+            }
+
+            drawSnowGroundAndRails(W, H, groundY, false);
+
+            for (let c = 0; c < 5; c++) {
+                drawConcreteSlabWithLoops(280 + c * 210 - camScrollX, groundY - 65 - (c % 2) * 25, 165, 65);
+            }
+
+            const pitX = 1240 - camScrollX;
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.ellipse(pitX + 65, groundY + 6, 85, 26, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // --- ЛОКАЦИЯ 4: Верхний ярус цеха с белой кирпичной стеной и темным люком ---
+        function drawLocation4UpperHallAndHatch(W, H, groundY) {
+            const farScroll = camScrollX * 0.35;
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(0, groundY - 340, W, 340);
+
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            for (let y = groundY - 330; y < groundY; y += 16) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(W, y);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#7dd3fc';
+            ctx.fillRect(680 - farScroll, groundY - 290, 420, 220);
+
+            ctx.strokeStyle = '#7c2d12';
+            ctx.lineWidth = 14;
+            for (let k = 0; k < 4; k++) {
+                const bx = 280 + k * 420 - camScrollX * 0.7;
+                ctx.beginPath();
+                ctx.moveTo(bx, groundY);
+                ctx.lineTo(bx + 140, groundY - 330);
+                ctx.lineTo(bx + 280, groundY);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(0, groundY, W, H - groundY);
+            for (let p = 0; p < 7; p++) {
+                drawConcreteSlabWithLoops(120 + p * 280 - camScrollX, groundY - 36, 240, 42);
+            }
+
+            const hatchX = 1070 - camScrollX;
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(hatchX, groundY - 12, 120, 36);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(hatchX, groundY - 12, 120, 36);
+        }
+
+        // --- ЛОКАЦИЯ 5: Открытые бетонные плиты на закате и следы на снегу ---
+        function drawLocation5SunsetSlabsAndTracks(W, H, groundY) {
+            const farScroll = camScrollX * 0.25;
+            ctx.fillStyle = '#431407';
+            ctx.fillRect(300 - farScroll, groundY - 240, 820, 240);
+
+            drawSnowGroundAndRails(W, H, groundY, false);
+
+            // Следы на снегу, ведущие к лежащим парням (с подсветкой несканированных цепочек)
+            for (let f = 380; f < 1750; f += 55) {
+                ctx.fillStyle = '#64748b';
+                ctx.beginPath();
+                ctx.ellipse(f - camScrollX, groundY + 14 + (f % 2) * 8, 12, 5, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            act5Footprints.forEach((fp) => {
+                if (!fp.scanned) {
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.ellipse(fp.x - camScrollX, groundY + 15, 28, 11, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+
+            drawConcreteSlabWithLoops(1640 - camScrollX, groundY - 135, 190, 140);
+        }
+
+        // Общая функция отрисовки снега и ж/д рельсов
+        function drawSnowGroundAndRails(W, H, groundY, withRails) {
+            const snowGrad = ctx.createLinearGradient(0, groundY - 20, 0, H);
+            snowGrad.addColorStop(0, '#f8fafc');
+            snowGrad.addColorStop(0.35, '#e2e8f0');
+            snowGrad.addColorStop(1, '#94a3b8');
+            ctx.fillStyle = snowGrad;
+            ctx.fillRect(0, groundY - 20, W, H - groundY + 20);
+
+            if (withRails) {
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(0, groundY - 4, W, 6);
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, groundY + 18, W, 8);
+
+                ctx.fillStyle = '#475569';
+                const tieOffset = -(camScrollX % 48);
+                for (let x = tieOffset; x < W; x += 48) {
+                    ctx.fillRect(x, groundY + 2, 28, 6);
+                    ctx.fillRect(x - 6, groundY + 22, 34, 7);
+                }
+            }
+        }
+
+        function drawStripedChimney(x, groundY, width, height) {
+            const segments = 7;
+            const segH = height / segments;
+            for (let i = 0; i < segments; i++) {
+                ctx.fillStyle = (i % 2 === 0) ? '#b91c1c' : '#e2e8f0';
+                const topW = width * (0.72 + (i / segments) * 0.28);
+                const botW = width * (0.72 + ((i + 1) / segments) * 0.28);
+                const yTop = groundY - height + i * segH;
+                ctx.beginPath();
+                ctx.moveTo(x - topW / 2, yTop);
+                ctx.lineTo(x + topW / 2, yTop);
+                ctx.lineTo(x + botW / 2, yTop + segH);
+                ctx.lineTo(x - botW / 2, yTop + segH);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function drawFreightCar(x, y, w, h, numCode) {
+            if (x + w < -100 || x > canvas.width + 100) return;
+
+            ctx.fillStyle = '#1e293b';
+            for (let wx of [x + 55, x + 115, x + w - 115, x + w - 55]) {
+                ctx.beginPath();
+                ctx.arc(wx, y + h + 14, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#2d5a3c';
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = '#1b3b26';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x, y, w, h);
+
+            ctx.fillStyle = '#1e3f29';
+            for (let rx = x + 38; rx < x + w - 20; rx += 52) {
+                ctx.fillRect(rx, y + 6, 8, h - 12);
+            }
+
+            ctx.fillStyle = 'rgba(124, 45, 18, 0.45)';
+            ctx.fillRect(x + 95, y + h - 45, 85, 35);
+            ctx.fillRect(x + w - 170, y + h - 55, 95, 42);
+
+            ctx.fillStyle = 'rgba(226, 232, 240, 0.65)';
+            ctx.font = 'bold 14px "IBM Plex Mono", monospace';
+            ctx.fillText(numCode, x + 50, y + 62);
+        }
+
+        function drawConcreteSlabWithLoops(x, y, w, h) {
+            if (x + w < -100 || x > canvas.width + 100) return;
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, w, h);
+
+            ctx.fillStyle = '#f1f5f9';
+            ctx.fillRect(x - 2, y - 6, w + 4, 10);
+
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 2.5;
+            for (let lx = x + 35; lx < x + w - 30; lx += 65) {
+                ctx.beginPath();
+                ctx.arc(lx, y - 6, 8, Math.PI, 0);
+                ctx.stroke();
+            }
+        }
+
+        // =========================================================================
+        // 10. ОТРИСОВКА ПЕРСОНАЖЕЙ (НАДПИСИ: САНЯ, САНЯ, ТЁМА)
+        // =========================================================================
+        function drawCharacterPlayer(x, groundY) {
+            if (player.inHatch) {
+                drawFloatingLabel(x, groundY - 85, 'САНЯ', '#fbbf24');
+                return;
+            }
+            const swing = player.isMoving ? Math.sin(player.walkFrame) * 9 : 0;
+
+            ctx.save();
+            ctx.translate(x, groundY);
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 24, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(-18 * player.dir - 8, -96, 18, 42);
+
+            ctx.strokeStyle = '#1e3a8a';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(-5, -42);
+            ctx.lineTo(-5 + swing, -6);
+            ctx.moveTo(6, -42);
+            ctx.lineTo(6 - swing, -6);
+            ctx.stroke();
+
+            ctx.fillStyle = '#451a03';
+            ctx.fillRect(-10 + swing, -8, 13, 8);
+            ctx.fillRect(1 - swing, -8, 13, 8);
+
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(-18, -102, 36, 62);
+            ctx.strokeStyle = '#3e2723';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-18, -102, 36, 62);
+
+            ctx.fillStyle = '#f1c6b3';
+            ctx.beginPath();
+            ctx.arc(0, -118, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#1d4ed8';
+            ctx.beginPath();
+            ctx.arc(0, -123, 15, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(-15, -126, 30, 6);
+
+            ctx.fillStyle = '#0f172a';
+            const camX = player.dir * 20;
+            ctx.fillRect(camX - 9, -92, 22, 13);
+            if (cameraRecMode) {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(camX + 8, -88, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+            drawFloatingLabel(x, groundY - 152, 'САНЯ', '#fbbf24');
+        }
+
+        function drawCharacterSanya2(x, groundY) {
+            if (x < -120 || x > canvas.width + 120) return;
+            ctx.save();
+            ctx.translate(x, groundY);
+
+            if (npcSanya2.unconscious) {
+                ctx.rotate(Math.PI / 2.1);
+                ctx.translate(-35, -15);
+            }
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 24, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(-6, -42); ctx.lineTo(-6, -6);
+            ctx.moveTo(6, -42); ctx.lineTo(6, -6);
+            ctx.stroke();
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-19, -104, 38, 62);
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-19, -104, 38, 62);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(0, -120, 17, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.fillStyle = '#eab89e';
+            ctx.beginPath();
+            ctx.arc(0, -120, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-26, -92, 7, 15);
+            ctx.beginPath();
+            ctx.moveTo(-23, -92);
+            ctx.lineTo(-23, -106);
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+            drawFloatingLabel(x, groundY - 152, 'САНЯ', '#f8fafc');
+        }
+
+        function drawCharacterTema(x, groundY) {
+            if (x < -120 || x > canvas.width + 120) return;
+            ctx.save();
+            const pitOffset = npcTema.inPit ? 46 : 0;
+            ctx.translate(x, groundY + pitOffset);
+
+            if (npcTema.unconscious) {
+                ctx.rotate(-Math.PI / 2.2);
+                ctx.translate(30, -15);
+            }
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 22, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 9;
+            ctx.beginPath();
+            ctx.moveTo(-6, -42); ctx.lineTo(-9, -6);
+            ctx.moveTo(6, -42); ctx.lineTo(9, -6);
+            ctx.stroke();
+
+            ctx.fillStyle = '#7f1d1d';
+            ctx.fillRect(-14, -8, 12, 8);
+            ctx.fillRect(4, -8, 12, 8);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-17, -100, 34, 58);
+
+            ctx.fillStyle = '#f3cbb8';
+            ctx.beginPath();
+            ctx.arc(0, -116, 13, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#881337';
+            ctx.beginPath();
+            ctx.arc(0, -121, 14, Math.PI, 0);
+            ctx.fill();
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(-14, -123, 28, 4);
+            ctx.fillStyle = '#9f1239';
+            ctx.beginPath();
+            ctx.arc(0, -137, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+            drawFloatingLabel(x, groundY - 152 + pitOffset, 'ТЁМА', '#fda4af');
+        }
+
+        function drawFloatingLabel(x, y, title, color) {
+            ctx.save();
+            ctx.font = '900 13px "Montserrat", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(9, 13, 20, 0.78)';
+            const w = Math.max(ctx.measureText(title).width + 18, 66);
+            ctx.fillRect(x - w / 2, y - 15, w, 22);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - w / 2, y - 15, w, 22);
+
+            ctx.fillStyle = color;
+            ctx.fillText(title, x, y);
+            ctx.restore();
+        }
+
+        function drawInteractiveHotspot(x, y, label) {
+            if (x < -100 || x > canvas.width + 100) return;
+            const pulse = Math.sin(performance.now() * 0.006) * 4;
+
+            ctx.save();
+            ctx.translate(x, y + pulse);
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.roundRect(-26, -24, 52, 42, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(-14, -10, 20, 14);
+            ctx.beginPath();
+            ctx.moveTo(6, -6);
+            ctx.lineTo(15, -11);
+            ctx.lineTo(15, 1);
+            ctx.lineTo(6, -2);
+            ctx.fill();
+
+            ctx.font = 'bold 11px "IBM Plex Mono", monospace';
+            ctx.textAlign = 'center';
+            const tw = ctx.measureText(label).width + 16;
+            ctx.fillStyle = 'rgba(9, 13, 20, 0.9)';
+            ctx.fillRect(-tw / 2, 24, tw, 20);
+            ctx.fillStyle = '#34d399';
+            ctx.fillText(label, 0, 38);
+
+            ctx.restore();
+        }
+
+        // =========================================================================
+        // 11. ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ
+        // =========================================================================
+        function gameLoop() {
+            updateGame();
+            renderScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function () {
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
